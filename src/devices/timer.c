@@ -93,20 +93,19 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks)
 {
-  int64_t start = timer_ticks();
-
   ASSERT (intr_get_level () == INTR_ON);
-  thread_current()->ticks = ticks - timer_elapsed(start);
-  if (thread_current()->ticks <= 0)
+  if (ticks <= 0)
     {
-      thread_yield();
       return;
     }
   /* Turn interrupts off temporarily to:
+     - calculate ticks to stop sleep
      - add thread to sleep list
      - block thread */
   enum intr_level old_level = intr_disable ();
-  list_push_back(&sleep_list, &thread_current()->sleep_elem);
+  thread_current()->ticks = timer_ticks() + ticks;
+  list_insert_ordered(&sleep_list, &thread_current()->elem,
+		      (list_less_func *) &cmp_ticks, NULL);
   thread_block();
   intr_set_level(old_level);
 }
@@ -186,21 +185,21 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  struct list_elem *e;
-
-  for (e = list_begin(&sleep_list); e != list_end(&sleep_list);
-       e = list_next(e))
-    {
-      struct thread *t = list_entry(e, struct thread, sleep_elem);
-      t->ticks--;
-      if (t->ticks <= 0)
-	{
-	  thread_unblock(t);
-	  list_remove(&t->sleep_elem);
-	}
-    }
   ticks++;
   thread_tick ();
+  struct list_elem *e = list_begin(&sleep_list);
+
+  while (e != list_end(&sleep_list))
+    {
+      struct thread *t = list_entry(e, struct thread, elem);      
+      if (ticks < t->ticks)
+	{
+	  return;
+	}
+      list_remove(e); // remove from sleep list
+      thread_unblock(t); // Unblock and add to ready list
+      e = list_begin(&sleep_list);
+    }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

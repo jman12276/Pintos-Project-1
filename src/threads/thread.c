@@ -245,8 +245,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
-  refresh_ready_list();
+  list_insert_ordered(&ready_list, &t->elem,
+		      (list_less_func *) &cmp_priority,
+		      NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -318,8 +319,9 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread)
     {
-      list_push_back (&ready_list, &cur->elem);
-      refresh_ready_list();
+      list_insert_ordered(&ready_list, &cur->elem,
+			  (list_less_func *) &cmp_priority,
+			  NULL);
     }
   cur->status = THREAD_READY;
   schedule ();
@@ -474,6 +476,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  // Added initializations for priority donation
+  t->init_priority = priority;
+  t->wait_on_lock = NULL;
+  list_init(&t->acquired_locks);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -614,10 +621,4 @@ bool cmp_priority (const struct list_elem *a,
       return true;
     }
   return false;
-}
-
-void refresh_ready_list (void)
-{
-  ASSERT (!list_empty(&ready_list));
-  list_sort(&ready_list, (list_less_func *) &cmp_priority, NULL);
 }

@@ -91,12 +91,17 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    /* Shared between thread.c and synch.c. */
+    /* Shared between thread.c and synch.c.
+       Used in ready and sleep lists */
     struct list_elem elem;              /* List element. */
 
     /* Used for timer sleep */
-    struct list_elem sleep_elem;
     int64_t ticks;
+
+    /* Used for priority scheduling */
+    int init_priority;
+    struct lock *wait_on_lock;
+    struct list acquired_locks;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -150,6 +155,5 @@ bool cmp_ticks (const struct list_elem *a,
 bool cmp_priority (const struct list_elem *a,
 		   const struct list_elem *b,
 		   void *aux UNUSED);
-void refresh_ready_list (void);
 
 #endif /* threads/thread.h */

@@ -10,6 +10,9 @@
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
+// Used for BSD scheduler
+#define RECALC_FREQ 4
+
 #if TIMER_FREQ < 19
 #error 8254 timer requires TIMER_FREQ >= 19
 #endif
@@ -199,6 +202,20 @@ timer_interrupt (struct intr_frame *args UNUSED)
       list_remove(e); // remove from sleep list
       thread_unblock(t); // Unblock and add to ready list
       e = list_begin(&sleep_list);
+    }
+  if (thread_mlfqs)
+    {
+      mlfqs_increment();
+      if (ticks % TIMER_FREQ == 0)
+	{
+	  mlfqs_load_avg();
+	  mlfqs_recalc(); // Recalcs recent_cpu and priority
+	}
+      if (ticks % RECALC_FREQ == 0)
+	{
+	  mlfqs_priority(thread_current());
+	  test_max_priority(); // Tests if thread still has max priority
+	}
     }
 }
 

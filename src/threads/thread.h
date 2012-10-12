@@ -103,6 +103,10 @@ struct thread
     struct lock *wait_on_lock;
     struct list acquired_locks;
 
+    /* Used for FreeBSD scheduling */
+    int nice;
+    int recent_cpu;
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -155,5 +159,13 @@ bool cmp_ticks (const struct list_elem *a,
 bool cmp_priority (const struct list_elem *a,
 		   const struct list_elem *b,
 		   void *aux UNUSED);
+void test_max_priority (void);
+
+void mlfqs_priority (struct thread *t);
+void mlfqs_recent_cpu (struct thread *t);
+void mlfqs_load_avg (void);
+void mlfqs_increment (void);
+
+void mlfqs_recalc (void);
 
 #endif /* threads/thread.h */

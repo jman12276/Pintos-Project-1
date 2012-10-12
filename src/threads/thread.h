@@ -101,7 +101,8 @@ struct thread
     /* Used for priority scheduling */
     int init_priority;
     struct lock *wait_on_lock;
-    struct list acquired_locks;
+    struct list donations;
+    struct list_elem donation_elem;
 
     /* Used for FreeBSD scheduling */
     int nice;
@@ -167,5 +168,9 @@ void mlfqs_load_avg (void);
 void mlfqs_increment (void);
 
 void mlfqs_recalc (void);
+
+void donate_priority (void);
+void remove_with_lock (struct lock *lock);
+void refresh_priority (void);
 
 #endif /* threads/thread.h */

@@ -190,19 +190,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  struct list_elem *e = list_begin(&sleep_list);
 
-  while (e != list_end(&sleep_list))
-    {
-      struct thread *t = list_entry(e, struct thread, elem);      
-      if (ticks < t->ticks)
-	{
-	  return;
-	}
-      list_remove(e); // remove from sleep list
-      thread_unblock(t); // Unblock and add to ready list
-      e = list_begin(&sleep_list);
-    }
   if (thread_mlfqs)
     {
       mlfqs_increment();
@@ -214,9 +202,22 @@ timer_interrupt (struct intr_frame *args UNUSED)
       if (ticks % RECALC_FREQ == 0)
 	{
 	  mlfqs_priority(thread_current());
-	  test_max_priority(); // Tests if thread still has max priority
 	}
     }
+
+  struct list_elem *e = list_begin(&sleep_list);
+  while (e != list_end(&sleep_list))
+    {
+      struct thread *t = list_entry(e, struct thread, elem);      
+      if (ticks < t->ticks)
+	{
+	  break;
+	}
+      list_remove(e); // remove from sleep list
+      thread_unblock(t); // Unblock and add to ready list
+      e = list_begin(&sleep_list);
+    }
+  test_max_priority(); // Tests if thread still has max priority
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

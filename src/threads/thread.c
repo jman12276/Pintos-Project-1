@@ -387,7 +387,10 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return thread_current()->priority;
+  enum intr_level old_level = intr_disable ();
+  int tmp = thread_current()->priority;
+  intr_set_level (old_level);
+  return tmp;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -405,23 +408,30 @@ thread_set_nice (int nice UNUSED)
 int
 thread_get_nice (void) 
 {
-  ASSERT(thread_current()->nice <= NICE_MAX &&
-	 thread_current()->nice >= NICE_MIN);
-  return thread_current()->nice;
+  enum intr_level old_level = intr_disable ();
+  int tmp = thread_current()->nice;
+  intr_set_level (old_level);
+  return tmp;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  return fp_to_int_round( mult_mixed(load_avg, 100) );
+  enum intr_level old_level = intr_disable ();
+  int tmp = fp_to_int_round( mult_mixed(load_avg, 100) );
+  intr_set_level (old_level);
+  return tmp;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  return fp_to_int_round( mult_mixed(thread_current()->recent_cpu, 100) );
+  enum intr_level old_level = intr_disable ();
+  int tmp = fp_to_int_round( mult_mixed(thread_current()->recent_cpu, 100) );
+  intr_set_level (old_level);
+  return tmp;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -750,7 +760,7 @@ void mlfqs_recalc (void)
   for (e = list_begin(&all_list); e != list_end(&all_list);
        e = list_next(e))
     {
-      struct thread *t = list_entry(e, struct thread, elem);
+      struct thread *t = list_entry(e, struct thread, allelem);
       mlfqs_recent_cpu(t);
       mlfqs_priority(t);
     }

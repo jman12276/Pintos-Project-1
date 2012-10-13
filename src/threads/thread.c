@@ -24,6 +24,8 @@
 
 #define LOAD_AVG_DEFAULT 0
 
+#define DEPTH_LIMIT 8
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -771,7 +773,7 @@ void donate_priority (void)
   int depth = 0;
   struct thread *t = thread_current();
   struct lock *l = t->wait_on_lock;
-  while (l && depth < 8)
+  while (l && depth < DEPTH_LIMIT)
     {
       depth++;
       // If lock is not being held, return
